@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 640" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#7c5cff"/>
+    </marker>
+    <marker id="arrowt" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#36d399"/>
+    </marker>
+  </defs>
+
+  <!-- backdrop -->
+  <rect x="0" y="0" width="1180" height="640" rx="18" fill="#0f1117"/>
+  <text x="40" y="48" fill="#e8eaf0" font-size="26" font-weight="700">Token<tspan fill="#7c5cff">Smith</tspan></text>
+  <text x="40" y="74" fill="#9aa3b2" font-size="14">context engineering &#8594; cache-aware layout &#8594; provider &#8594; measured result</text>
+
+  <!-- INPUT -->
+  <g>
+    <rect x="40" y="120" width="180" height="180" rx="12" fill="#171a23" stroke="#2a2f3e"/>
+    <text x="130" y="146" fill="#9aa3b2" font-size="12" text-anchor="middle" letter-spacing="1.5">INPUT</text>
+    <rect x="60" y="160" width="140" height="34" rx="7" fill="#242a3a"/>
+    <text x="130" y="182" fill="#e8eaf0" font-size="13" text-anchor="middle">user query</text>
+    <rect x="60" y="202" width="140" height="34" rx="7" fill="#1f2b27" stroke="#2f6b56"/>
+    <text x="130" y="224" fill="#9be7c8" font-size="13" text-anchor="middle">retrieved docs</text>
+    <rect x="60" y="244" width="140" height="34" rx="7" fill="#23203a" stroke="#5b4bb0"/>
+    <text x="130" y="266" fill="#c9bdff" font-size="13" text-anchor="middle">static scaffold</text>
+  </g>
+
+  <!-- CONTEXT ENGINEERING LAYER -->
+  <g>
+    <rect x="280" y="100" width="270" height="220" rx="14" fill="#101d19" stroke="#36d399" stroke-opacity="0.5"/>
+    <text x="300" y="128" fill="#36d399" font-size="13" font-weight="700" letter-spacing=".5">CONTEXT-ENGINEERING LAYER</text>
+    <text x="300" y="146" fill="#5f7d72" font-size="11">signal &gt; volume</text>
+    <g font-size="13" fill="#dff5ec">
+      <rect x="300" y="158" width="230" height="28" rx="6" fill="#15241f"/><text x="314" y="177">1 &#183; dedup near-duplicates (Jaccard)</text>
+      <rect x="300" y="190" width="230" height="28" rx="6" fill="#15241f"/><text x="314" y="209">2 &#183; rank by relevance (TF-IDF)</text>
+      <rect x="300" y="222" width="230" height="28" rx="6" fill="#15241f"/><text x="314" y="241">3 &#183; budget + compress marginal</text>
+      <rect x="300" y="254" width="230" height="28" rx="6" fill="#15241f"/><text x="314" y="273">4 &#183; order for "lost in the middle"</text>
+    </g>
+    <text x="415" y="304" fill="#36d399" font-size="12" text-anchor="middle" font-weight="600">92% fewer tokens &#183; 100% recall</text>
+  </g>
+
+  <!-- CACHE LAYOUT LAYER -->
+  <g>
+    <rect x="610" y="100" width="270" height="220" rx="14" fill="#16122a" stroke="#7c5cff" stroke-opacity="0.6"/>
+    <text x="630" y="128" fill="#b3a4ff" font-size="13" font-weight="700" letter-spacing=".5">CACHE-LAYOUT LAYER</text>
+    <text x="630" y="146" fill="#7a719e" font-size="11">CachePlanner + linter</text>
+    <g font-size="13" fill="#e7e1ff">
+      <rect x="630" y="158" width="230" height="28" rx="6" fill="#1d1838"/><text x="644" y="177">reorder static-first</text>
+      <rect x="630" y="190" width="230" height="28" rx="6" fill="#1d1838"/><text x="644" y="209">set cache breakpoint on prefix</text>
+      <rect x="630" y="222" width="230" height="28" rx="6" fill="#1d1838"/><text x="644" y="241">warn: volatile-before-static</text>
+      <rect x="630" y="254" width="230" height="28" rx="6" fill="#2a1d3a" stroke="#7c5cff" stroke-opacity="0.5"/><text x="644" y="273">lint: timestamps/UUIDs/IDs in prefix</text>
+    </g>
+    <text x="745" y="304" fill="#b3a4ff" font-size="12" text-anchor="middle" font-weight="600">longest reusable prefix &#183; bust-free</text>
+  </g>
+
+  <!-- PROVIDER ABSTRACTION -->
+  <g>
+    <rect x="940" y="120" width="200" height="180" rx="12" fill="#171a23" stroke="#2a2f3e"/>
+    <text x="1040" y="146" fill="#9aa3b2" font-size="12" text-anchor="middle" letter-spacing="1.2">PROVIDER (one seam)</text>
+    <rect x="960" y="160" width="160" height="32" rx="7" fill="#242a3a"/><text x="1040" y="181" fill="#e8eaf0" font-size="13" text-anchor="middle">MockProvider (sim)</text>
+    <rect x="960" y="198" width="160" height="32" rx="7" fill="#23203a" stroke="#5b4bb0"/><text x="1040" y="219" fill="#c9bdff" font-size="13" text-anchor="middle">Anthropic &#183; explicit</text>
+    <rect x="960" y="236" width="160" height="32" rx="7" fill="#1f2b27" stroke="#2f6b56"/><text x="1040" y="257" fill="#9be7c8" font-size="13" text-anchor="middle">vLLM &#183; GLM (free)</text>
+    <text x="1040" y="288" fill="#9aa3b2" font-size="11" text-anchor="middle">OpenAI-compatible &#183; cached_tokens</text>
+  </g>
+
+  <!-- flow arrows -->
+  <line x1="222" y1="210" x2="276" y2="210" stroke="#36d399" stroke-width="2" marker-end="url(#arrowt)"/>
+  <line x1="552" y1="210" x2="606" y2="210" stroke="#7c5cff" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="882" y1="210" x2="936" y2="210" stroke="#7c5cff" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ECONOMICS band -->
+  <g>
+    <rect x="40" y="380" width="1100" height="180" rx="14" fill="#141722" stroke="#2a2f3e"/>
+    <text x="64" y="410" fill="#9aa3b2" font-size="12" letter-spacing="1.5">ECONOMICS &#183; tokensmith.economics &#8594; RunReport / VolumeReport</text>
+
+    <!-- metric cards -->
+    <g>
+      <rect x="64" y="430" width="240" height="106" rx="10" fill="#1c1233" stroke="#7c5cff" stroke-opacity="0.4"/>
+      <text x="84" y="456" fill="#b3a4ff" font-size="12">Caching, 50k req/mo, Sonnet 4.6</text>
+      <text x="84" y="490" fill="#e8eaf0" font-size="22" font-weight="700">$1,552 &#8594; $542</text>
+      <text x="84" y="514" fill="#36d399" font-size="13">65% lower at 95% hit rate</text>
+    </g>
+    <g>
+      <rect x="320" y="430" width="240" height="106" rx="10" fill="#2a1622" stroke="#ef5e6b" stroke-opacity="0.4"/>
+      <text x="340" y="456" fill="#ff9aa4" font-size="12">The trap most setups miss</text>
+      <text x="340" y="490" fill="#e8eaf0" font-size="22" font-weight="700">+19% at 0% reuse</text>
+      <text x="340" y="514" fill="#ff9aa4" font-size="13">naive caching can cost MORE</text>
+    </g>
+    <g>
+      <rect x="576" y="430" width="240" height="106" rx="10" fill="#102019" stroke="#36d399" stroke-opacity="0.4"/>
+      <text x="596" y="456" fill="#6ee7b7" font-size="12">Context, 29 noisy docs</text>
+      <text x="596" y="490" fill="#e8eaf0" font-size="22" font-weight="700">2,529 &#8594; 216 tok</text>
+      <text x="596" y="514" fill="#36d399" font-size="13">92% cut, 100% answer recall</text>
+    </g>
+    <g>
+      <rect x="832" y="430" width="276" height="106" rx="10" fill="#171a23" stroke="#2a2f3e"/>
+      <text x="852" y="456" fill="#9aa3b2" font-size="12">Typical industry baseline</text>
+      <text x="852" y="490" fill="#e8eaf0" font-size="22" font-weight="700">28% cache / 69% scaffold</text>
+      <text x="852" y="514" fill="#f2a23c" font-size="13">~60 pts of savings unclaimed</text>
+    </g>
+  </g>
+
+  <!-- connector from provider down to economics -->
+  <path d="M1040 300 L1040 350 L590 350 L590 376" fill="none" stroke="#2a2f3e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <text x="40" y="600" fill="#5b6273" font-size="11">Zero-dependency core &#183; runs without API keys (simulator) &#183; 13 passing tests &#183; interactive demo in demo/index.html</text>
+</svg>

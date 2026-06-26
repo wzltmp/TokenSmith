@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TokenSmith — caching & context engineering</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1f2330; --line:#2a2f3e;
+    --ink:#e8eaf0; --muted:#9aa3b2; --accel:#7c5cff; --good:#36d399;
+    --warn:#f2a23c; --bad:#ef5e6b; --chip:#242a3a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:28px 24px 12px;max-width:1080px;margin:0 auto}
+  h1{margin:0;font-size:26px;letter-spacing:-.5px}
+  h1 .s{color:var(--accel)}
+  .sub{color:var(--muted);margin:6px 0 0;max-width:760px}
+  main{max-width:1080px;margin:0 auto;padding:8px 24px 60px;
+    display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h2{margin:0 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .card .tag{font-size:12px;color:var(--accel);font-weight:600;margin-bottom:14px}
+  label{display:block;margin:14px 0 6px;font-size:13px;color:var(--muted)}
+  .row{display:flex;align-items:center;gap:12px}
+  input[type=range]{width:100%;accent-color:var(--accel)}
+  select,input[type=number]{background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:100%}
+  .val{min-width:96px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .metric .k{font-size:12px;color:var(--muted)}
+  .metric .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}
+  .v.good{color:var(--good)} .v.bad{color:var(--bad)} .v.warn{color:var(--warn)}
+  .bars{margin-top:18px;display:grid;gap:8px}
+  .bar{display:grid;grid-template-columns:64px 1fr 92px;align-items:center;gap:10px;font-size:13px}
+  .track{height:18px;background:var(--chip);border-radius:6px;overflow:hidden}
+  .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accel),#9d83ff);
+    transition:width .25s ease}
+  .bar.hi .fill{background:linear-gradient(90deg,var(--good),#6ee7b7)}
+  .bar.lo .fill{background:linear-gradient(90deg,var(--bad),#ff8a94)}
+  .bar .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .note{margin-top:16px;font-size:13px;color:var(--muted);border-left:3px solid var(--accel);
+    padding:6px 0 6px 12px}
+  .note.bad{border-color:var(--bad)} .note.good{border-color:var(--good)}
+  .pill{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 10px;
+    font-size:12px;color:var(--muted);margin-left:8px}
+  footer{max-width:1080px;margin:0 auto;padding:0 24px 50px;color:var(--muted);font-size:12px}
+  code{background:var(--chip);padding:1px 6px;border-radius:5px}
+  .doc{height:8px;border-radius:3px;background:var(--chip);margin:4px 0}
+  .doc.keep{background:linear-gradient(90deg,var(--good),#6ee7b7)}
+  .doc.drop{background:var(--bad);opacity:.35}
+</style>
+</head>
+<body>
+<header>
+  <h1>Token<span class="s">Smith</span> <span class="pill">interactive demo</span></h1>
+  <p class="sub">In production agent systems, most input tokens (~69% in measured traces) are
+  static scaffolding, yet only ~28% of cache-capable calls actually cache — and context
+  volume has exploded while quality lags. Drag the controls to see what that costs, and what
+  fixing it saves.</p>
+</header>
+
+<main>
+  <!-- CACHING -->
+  <section class="card">
+    <h2>Caching layer</h2>
+    <div class="tag">Heavy scaffolding, underutilized caching</div>
+
+    <label>Model</label>
+    <select id="model"></select>
+
+    <label>Static scaffold (system prompt, tools, policies) — <span id="scaffoldL"></span> tokens</label>
+    <input type="range" id="scaffold" min="500" max="40000" step="500" value="8000">
+
+    <label>Dynamic tokens per call — <span id="dynL"></span> tokens</label>
+    <input type="range" id="dyn" min="100" max="8000" step="100" value="600">
+
+    <label>Requests / month — <span id="reqL"></span></label>
+    <input type="range" id="req" min="1000" max="2000000" step="1000" value="50000">
+
+    <label>Cache hit rate — <span id="hrL"></span></label>
+    <input type="range" id="hr" min="0" max="100" step="1" value="95">
+
+    <div class="big">
+      <div class="metric"><div class="k">Monthly cost — no caching</div><div class="v" id="mNaive">—</div></div>
+      <div class="metric"><div class="k">Monthly cost — cached</div><div class="v good" id="mCached">—</div></div>
+      <div class="metric"><div class="k">Savings</div><div class="v good" id="mSave">—</div></div>
+      <div class="metric"><div class="k">Latency / call (cold → warm)</div><div class="v" id="mLat">—</div></div>
+    </div>
+
+    <div class="bars" id="sweep"></div>
+    <div class="note" id="cacheNote"></div>
+  </section>
+
+  <!-- CONTEXT -->
+  <section class="card">
+    <h2>Context-engineering layer</h2>
+    <div class="tag">Exploding context — signal &gt; volume</div>
+
+    <label>Retrieved documents — <span id="ndocL"></span></label>
+    <input type="range" id="ndoc" min="4" max="120" step="1" value="29">
+
+    <label>Avg tokens per document — <span id="dtokL"></span></label>
+    <input type="range" id="dtok" min="40" max="1200" step="20" value="320">
+
+    <label>Near-duplicate share — <span id="dupL"></span></label>
+    <input type="range" id="dup" min="0" max="80" step="1" value="35">
+
+    <label>Irrelevant (noise) share — <span id="noiseL"></span></label>
+    <input type="range" id="noise" min="0" max="90" step="1" value="55">
+
+    <label>Context token budget — <span id="budL"></span></label>
+    <input type="range" id="bud" min="200" max="8000" step="100" value="2000">
+
+    <div class="big">
+      <div class="metric"><div class="k">Raw context</div><div class="v" id="cRaw">—</div></div>
+      <div class="metric"><div class="k">Engineered context</div><div class="v good" id="cEng">—</div></div>
+      <div class="metric"><div class="k">Token reduction</div><div class="v good" id="cRed">—</div></div>
+      <div class="metric"><div class="k">Docs kept</div><div class="v" id="cKept">—</div></div>
+    </div>
+    <label style="margin-top:16px">Document fate (green = kept, red = dedup/dropped)</label>
+    <div id="docViz"></div>
+    <div class="note good" id="ctxNote"></div>
+  </section>
+</main>
+
+<footer>
+  Math mirrors <code>tokensmith.economics</code> and the context pipeline. Pricing reflects
+  published June 2026 rates (cache read 0.1× input for Anthropic; automatic discounted reads
+  for OpenAI). Defaults are overridable in the library. Built as a portfolio piece — no server,
+  no keys, all computation runs in your browser.
+</footer>
+
+<script>
+// --- pricing table (mirrors src/tokensmith/pricing.py) ---
+const MODELS = {
+  "claude-opus-4.8":  {input:5.0, output:25.0, read:0.50, w5:6.25, w1h:10.0, min:1024, explicit:true},
+  "claude-sonnet-4.6":{input:3.0, output:15.0, read:0.30, w5:3.75, w1h:6.0,  min:1024, explicit:true},
+  "claude-haiku-4.5": {input:1.0, output:5.0,  read:0.10, w5:1.25, w1h:2.0,  min:2048, explicit:true},
+  "gpt-5.5":          {input:5.0, output:30.0, read:0.50, w5:5.0,  w1h:5.0,  min:1024, explicit:false},
+  "gpt-5.4":          {input:2.5, output:15.0, read:0.25, w5:2.5,  w1h:2.5,  min:1024, explicit:false},
+  "gpt-4.1":          {input:2.0, output:8.0,  read:0.50, w5:2.0,  w1h:2.0,  min:1024, explicit:false},
+};
+const OUTPUT_TOKENS = 350;
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString();
+const usd = n => "$" + n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// populate model select
+const msel = $("model");
+for(const m in MODELS){const o=document.createElement("option");o.value=m;o.textContent=m;msel.appendChild(o);}
+msel.value="claude-sonnet-4.6";
+
+function projectVolume(p, staticTok, dynTok, requests, hitRate){
+  const cacheable = staticTok >= p.min;
+  const naive = requests*((staticTok+dynTok)*p.input/1e6 + OUTPUT_TOKENS*p.output/1e6);
+  if(!cacheable) return {naive, cached:naive, cacheable:false};
+  const hits = Math.round(requests*hitRate), misses = requests-hits;
+  let cached;
+  if(p.explicit){
+    cached = (dynTok*requests)*p.input/1e6      // dynamic always full
+           + (staticTok*hits)*p.read/1e6        // hits read cheap
+           + (staticTok*misses)*p.w5/1e6        // misses pay write surcharge
+           + requests*OUTPUT_TOKENS*p.output/1e6;
+  } else {
+    cached = (staticTok*misses + dynTok*requests)*p.input/1e6
+           + (staticTok*hits)*p.read/1e6
+           + requests*OUTPUT_TOKENS*p.output/1e6;
+  }
+  return {naive, cached, cacheable:true};
+}
+
+// latency model mirrors providers/mock.py
+function latency(p, staticTok, dynTok, warm){
+  const BASE=180, PREFILL=22, CACHED=2, DECODE=6;
+  const uncached = warm ? dynTok : staticTok+dynTok;
+  return BASE + uncached/1000*PREFILL + (warm?staticTok/1000*CACHED:0) + OUTPUT_TOKENS*DECODE;
+}
+
+function renderCaching(){
+  const p = MODELS[msel.value];
+  const staticTok=+$("scaffold").value, dynTok=+$("dyn").value,
+        requests=+$("req").value, hr=+$("hr").value/100;
+  $("scaffoldL").textContent=fmt(staticTok);
+  $("dynL").textContent=fmt(dynTok);
+  $("reqL").textContent=fmt(requests);
+  $("hrL").textContent=Math.round(hr*100)+"%";
+
+  const r = projectVolume(p, staticTok, dynTok, requests, hr);
+  const save = r.naive - r.cached, savePct = r.naive? save/r.naive : 0;
+  $("mNaive").textContent = usd(r.naive);
+  $("mCached").textContent = usd(r.cached);
+  const sv=$("mSave");
+  sv.textContent = (save>=0?"":"−") + usd(Math.abs(save)) + "  (" + Math.round(savePct*100) + "%)";
+  sv.className = "v " + (save<0?"bad":"good");
+  const cold=latency(p,staticTok,dynTok,false), warm=latency(p,staticTok,dynTok,true);
+  $("mLat").textContent = Math.round(cold)+" → "+Math.round(warm)+" ms";
+
+  // sweep bars
+  const rates=[0,0.28,0.5,0.8,0.95,1.0];
+  const costs=rates.map(x=>projectVolume(p,staticTok,dynTok,requests,x).cached);
+  const max=Math.max(r.naive,...costs);
+  $("sweep").innerHTML = rates.map((x,i)=>{
+    const c=costs[i], pct=max?100*c/max:0;
+    const cls = x===0.28?"" : (c<r.naive?"hi":"lo");
+    const label = x===0.28? Math.round(x*100)+"% ★" : Math.round(x*100)+"%";
+    return `<div class="bar ${cls}"><div>${label}</div>
+      <div class="track"><div class="fill" style="width:${pct.toFixed(1)}%"></div></div>
+      <div class="n">${usd(c)}</div></div>`;
+  }).join("");
+
+  const note=$("cacheNote");
+  if(!r.cacheable){
+    note.className="note bad";
+    note.innerHTML=`Scaffold is below this model's ${fmt(p.min)}-token minimum — it <b>cannot be cached</b>. Consolidate static instructions into a longer shared prefix.`;
+  } else if(save<0){
+    note.className="note bad";
+    note.innerHTML=`At this hit rate, caching <b>costs more</b>: with explicit caching every miss pays a ${p.w5/p.input}× write surcharge. Fix prompt <b>layout</b> for reuse before enabling caching.`;
+  } else {
+    note.className="note good";
+    const at28=projectVolume(p,staticTok,dynTok,requests,0.28).cached;
+    const upside=at28-r.cached;
+    note.innerHTML=`A typical <b>28%</b> cache-hit rate would cost ${usd(at28)}/mo here. Reaching this hit rate saves a further <b>${usd(upside)}/mo</b> on top of that.`;
+  }
+}
+
+function renderContext(){
+  const n=+$("ndoc").value, dtok=+$("dtok").value,
+        dupPct=+$("dup").value/100, noisePct=+$("noise").value/100, budget=+$("bud").value;
+  $("ndocL").textContent=n; $("dtokL").textContent=dtok;
+  $("dupL").textContent=Math.round(dupPct*100)+"%";
+  $("noiseL").textContent=Math.round(noisePct*100)+"%";
+  $("budL").textContent=fmt(budget);
+
+  const raw = n*dtok;
+  const dupes=Math.round(n*dupPct);
+  const afterDedup = n-dupes;                       // duplicates removed
+  const noiseDocs=Math.min(afterDedup, Math.round(n*noisePct));
+  const relevant=Math.max(0, afterDedup-noiseDocs); // ranked above noise
+  // keep relevant docs first, then fill remaining budget; noise rarely makes it
+  let used=0, kept=0;
+  const fates=[];
+  // relevant kept until budget runs out
+  for(let i=0;i<afterDedup;i++){
+    const isRelevant = i<relevant;
+    if(used+dtok<=budget && (isRelevant || used+dtok<=budget*0.9)){
+      used+=dtok; kept++; fates.push("keep");
+    } else fates.push("drop");
+  }
+  for(let i=0;i<dupes;i++) fates.push("drop");
+
+  $("cRaw").textContent=fmt(raw)+" tok";
+  $("cEng").textContent=fmt(used)+" tok";
+  $("cRed").textContent=raw?Math.round(100*(1-used/raw))+"%":"0%";
+  $("cKept").textContent=kept+" / "+n;
+
+  $("docViz").innerHTML = fates.map(f=>`<div class="doc ${f}"></div>`).join("");
+  const note=$("ctxNote");
+  note.innerHTML=`Dropped ${n-kept} of ${n} documents (${dupes} duplicates, ${n-kept-dupes} low-signal/over-budget) — keeping the highest-signal context within budget. <b>${raw?Math.round(100*(1-used/raw)):0}% fewer tokens</b> reach the model.`;
+}
+
+[..."model scaffold dyn req hr".split(" ")].forEach(id=>$(id).addEventListener("input",renderCaching));
+[..."ndoc dtok dup noise bud".split(" ")].forEach(id=>$(id).addEventListener("input",renderContext));
+renderCaching(); renderContext();
+</script>
+</body>
+</html>

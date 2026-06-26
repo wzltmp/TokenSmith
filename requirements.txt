@@ -1,0 +1,6 @@
+# Core library has ZERO required dependencies.
+# Optional extras (see pyproject.toml [project.optional-dependencies]):
+#   tiktoken>=0.7     # accurate token counts (falls back to heuristic if absent)
+#   anthropic>=0.40   # AnthropicProvider
+#   openai>=1.40      # OpenAIProvider
+#   pytest>=8.0       # tests
